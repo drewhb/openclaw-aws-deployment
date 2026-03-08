@@ -158,7 +158,7 @@ echo "[7/9] Setting up systemd service and plugins..."
 loginctl enable-linger ubuntu
 
 # Install daemon (creates user-level systemd service named openclaw-gateway)
-sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 bash -c '
+sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus bash -c '
 export HOME=/home/ubuntu
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -199,7 +199,7 @@ if [ "$EFFECTIVE_PROVIDER" = "openrouter" ]; then
     "providers": {
       "openrouter": {
         "baseUrl": "https://openrouter.ai/api/v1",
-        "api": "openai",
+        "api": "openai-completions",
         "auth": "api-key",
         "apiKey": "$OPENROUTER_API_KEY",
         "models": [
@@ -269,12 +269,12 @@ JSONEOF
 fi
 
 # Enable service to persist across reboots (actual service name is openclaw-gateway)
-sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 bash -c '
+sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus bash -c '
 systemctl --user enable openclaw-gateway 2>/dev/null || systemctl --user enable openclaw-gateway.service 2>/dev/null || echo "Service enable deferred"
 '
 
 # Start the daemon
-sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 bash -c '
+sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus bash -c '
 systemctl --user start openclaw-gateway 2>/dev/null || systemctl --user start openclaw-gateway.service 2>/dev/null || echo "Service start deferred to linger"
 '
 

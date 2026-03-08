@@ -1,0 +1,5 @@
+{
+  "commands": [
+    "sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 bash -lc 'export HOME=/home/ubuntu; export NVM_DIR=\"$HOME/.nvm\"; [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"; openclaw pair approve 8787194783 2>&1 || openclaw devices approve 8787194783 2>&1 || openclaw telegram pair approve 8787194783 2>&1 || echo \"trying code-based\"; openclaw pair approve UFFNWWBX 2>&1 || true'"
+  ]
+}
