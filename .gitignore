@@ -22,4 +22,4 @@ tests/tfsec-results.txt
 .env.*
 *.pem
 *.key
-*.vscode
+.vscode
