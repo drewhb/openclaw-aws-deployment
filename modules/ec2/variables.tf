@@ -90,6 +90,11 @@ variable "region" {
   type        = string
 }
 
+variable "backup_bucket_name" {
+  description = "S3 bucket name for OpenClaw config backups"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags"
   type        = map(string)

@@ -2,6 +2,8 @@
 
 Terraform infrastructure-as-code deployment for [OpenClaw](https://github.com/openclaw/openclaw) on AWS EC2 with native host install and Amazon Bedrock.
 
+> Forked from [mvinci12/openclaw-aws-deployment](https://github.com/mvinci12/openclaw-aws-deployment) — extended with automated S3 backup/restore, a systemd reliability fix (`Restart=always`), and an AI agent definition that lets OpenCode or GitHub Copilot automatically apply changes to the live gateway via SSM.
+
 ## Features
 
 - **SSM-Only Access**: No SSH keys, no port 22 - pure AWS Systems Manager Session Manager
@@ -161,6 +163,20 @@ openclaw-aws-deployment/
 - SSM Session Manager Plugin installed
 - Amazon Bedrock model access enabled in your AWS account
 - OpenRouter API key (only if using OpenRouter provider)
+
+## AI Agent Integration
+
+This repo includes an [openclaw-config-builder](.github/agents/openclaw-config-builder.agent.md) agent definition compatible with [OpenCode](https://opencode.ai) and GitHub Copilot agent mode.
+
+When invoked, it can automatically:
+
+- inspect the live gateway state via SSM (`aws ssm send-command`)
+- edit `~/.openclaw/openclaw.json` on the host
+- add or update agents, bindings, skills, workspaces, and channel config
+- configure Telegram and other channels
+- validate changes and restart the service when needed
+
+This makes it practical to manage the running gateway conversationally without manual SSM sessions for routine changes.
 
 ## License
 

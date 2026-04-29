@@ -53,6 +53,63 @@ locals {
 
   # Sort subnet IDs for deterministic selection
   sorted_subnet_ids = sort(data.aws_subnets.default.ids)
+
+  # S3 backup bucket name (globally unique: account + region + environment)
+  backup_bucket_name = "openclaw-backup-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}-${var.environment}"
+}
+
+# S3 Backup Bucket
+resource "aws_s3_bucket" "backup" {
+  bucket = local.backup_bucket_name
+
+  tags = merge(var.tags, {
+    Name = "openclaw-${var.environment}-backup"
+  })
+}
+
+resource "aws_s3_bucket_versioning" "backup" {
+  bucket = aws_s3_bucket.backup.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "backup" {
+  bucket = aws_s3_bucket.backup.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "backup" {
+  bucket                  = aws_s3_bucket.backup.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "backup" {
+  bucket = aws_s3_bucket.backup.id
+
+  rule {
+    id     = "expire-old-backups"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 30
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+  }
 }
 
 # CloudWatch Log Group
@@ -74,6 +131,7 @@ module "iam" {
   ssm_parameter_prefix = local.ssm_prefix
   aws_region           = data.aws_region.current.name
   aws_account_id       = data.aws_caller_identity.current.account_id
+  backup_bucket_name   = local.backup_bucket_name
 }
 
 module "network" {
@@ -117,6 +175,7 @@ module "ec2" {
   openrouter_ssm_param   = var.openrouter_ssm_parameter
   log_group              = aws_cloudwatch_log_group.user_data.name
   region                 = data.aws_region.current.name
+  backup_bucket_name     = local.backup_bucket_name
 
   tags = var.tags
 }

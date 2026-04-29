@@ -31,6 +31,7 @@ resource "aws_instance" "openclaw" {
     openrouter_ssm_param   = var.openrouter_ssm_param
     region                 = var.region
     log_group              = var.log_group
+    backup_bucket_name     = var.backup_bucket_name
   }))
 
   user_data_replace_on_change = true
@@ -38,4 +39,8 @@ resource "aws_instance" "openclaw" {
   tags = merge(var.tags, {
     Name = "openclaw-${var.environment}"
   })
+
+  lifecycle {
+    ignore_changes = [user_data]
+  }
 }

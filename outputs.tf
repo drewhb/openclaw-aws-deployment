@@ -48,6 +48,11 @@ output "monthly_cost_estimate" {
   value       = var.enable_vpc_endpoints ? "~$35-45/month (includes VPC endpoints)" : "~$13-17/month (no VPC endpoints)"
 }
 
+output "backup_bucket_name" {
+  description = "S3 bucket where daily OpenClaw backups are stored"
+  value       = aws_s3_bucket.backup.id
+}
+
 output "openrouter_ssm_setup_command" {
   description = "Command to store OpenRouter API key in SSM (run once before deploy if using OpenRouter)"
   value       = "aws ssm put-parameter --name ${var.ssm_parameter_prefix}/${var.environment}/openrouter-api-key --type SecureString --value 'YOUR_KEY_HERE' --region ${data.aws_region.current.name}"

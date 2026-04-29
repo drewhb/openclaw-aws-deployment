@@ -621,6 +621,86 @@ sudo su - ubuntu
 journalctl --user -u openclaw-gateway --no-pager | grep -i error
 ```
 
+## Backup and Restore
+
+A daily cron job runs at **2:00 AM UTC** on the instance and syncs `~/.openclaw/` to S3. The bucket is created by Terraform and the instance role has write access automatically — no manual setup needed.
+
+### View the Backup Bucket
+
+```bash
+terraform output backup_bucket_name
+```
+
+### Trigger a Manual Backup
+
+```bash
+INSTANCE_ID=$(terraform output -raw instance_id)
+REGION=$(aws configure get region)
+aws ssm start-session --target $INSTANCE_ID --region $REGION
+
+sudo su - ubuntu
+/home/ubuntu/backup-openclaw.sh
+```
+
+### What Gets Backed Up
+
+Everything in `~/.openclaw/` except:
+- `logs/` — transient, can be regenerated
+- `delivery-queue/` — in-flight messages, not worth restoring
+- `setup_complete.txt` — boot marker, not needed
+
+This includes your agents, workspaces, memory, credentials, canvas, cron jobs, Telegram config, and `openclaw.json`.
+
+### Restore on a New Instance
+
+After deploying a fresh instance with `terraform apply`:
+
+```bash
+# 1. SSM into the new instance
+INSTANCE_ID=$(terraform output -raw instance_id)
+REGION=$(aws configure get region)
+aws ssm start-session --target $INSTANCE_ID --region $REGION
+
+# 2. Wait for first-boot setup to finish
+cat /home/ubuntu/.openclaw/setup_complete.txt
+
+# 3. Switch to ubuntu user
+sudo su - ubuntu
+
+# 4. Stop the service before restoring
+systemctl --user stop openclaw-gateway
+
+# 5. Restore from S3
+BUCKET=$(aws ssm get-parameter --name /openclaw/dev/gateway-token --region $REGION --query 'Parameter.Value' --output text 2>/dev/null || true)
+# Get bucket name from Terraform output on your local machine:
+#   terraform output backup_bucket_name
+BUCKET="<paste bucket name here>"
+REGION=$(aws configure get region 2>/dev/null || curl -sf -H "X-aws-ec2-metadata-token: $(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')" http://169.254.169.254/latest/meta-data/placement/region)
+
+aws s3 sync "s3://$BUCKET/openclaw-backup/" /home/ubuntu/.openclaw/ --region $REGION
+
+# 6. The restored openclaw.json has your old gateway token.
+#    Update SSM to match so the access instructions stay consistent:
+OLD_TOKEN=$(jq -r '.gateway.auth.token' /home/ubuntu/.openclaw/openclaw.json)
+aws ssm put-parameter \
+  --name "/openclaw/dev/gateway-token" \
+  --value "$OLD_TOKEN" \
+  --type SecureString \
+  --overwrite \
+  --region $REGION
+
+# 7. Restart the service
+systemctl --user start openclaw-gateway
+systemctl --user status openclaw-gateway
+```
+
+### Check Backup Logs
+
+```bash
+# On the instance (as ubuntu)
+cat ~/.openclaw/logs/backup.log
+```
+
 ## Cleanup / Destroy
 
 **WARNING**: This will permanently delete all resources!

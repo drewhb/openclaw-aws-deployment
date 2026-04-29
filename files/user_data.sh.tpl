@@ -165,6 +165,18 @@ export NVM_DIR="$HOME/.nvm"
 openclaw daemon install || echo "Daemon install failed"
 '
 
+# Harden systemd unit: change Restart=on-failure to Restart=always
+# The default "on-failure" policy misses clean-exit supervisor restarts (SIGUSR1),
+# which leaves the gateway dead until manual intervention.
+UNIT_FILE="/home/ubuntu/.config/systemd/user/openclaw-gateway.service"
+if [ -f "$${UNIT_FILE}" ]; then
+    sudo -u ubuntu sed -i 's/^Restart=on-failure$$/Restart=always/' "$${UNIT_FILE}"
+    sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus bash -c 'systemctl --user daemon-reload'
+    echo "Patched systemd unit: Restart=always"
+else
+    echo "Warning: systemd unit file not found at $${UNIT_FILE}"
+fi
+
 # Enable Telegram plugin BEFORE writing final config (plugin enable overwrites config)
 # No bot token configured yet -- see Runbook.md for Telegram setup
 sudo -H -u ubuntu XDG_RUNTIME_DIR=/run/user/1000 bash -c '

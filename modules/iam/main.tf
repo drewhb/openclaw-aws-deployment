@@ -82,3 +82,26 @@ resource "aws_iam_instance_profile" "openclaw" {
   name = "openclaw-${var.environment}-profile"
   role = aws_iam_role.openclaw.name
 }
+
+# S3 backup policy
+resource "aws_iam_role_policy" "s3_backup" {
+  name = "s3-backup-access"
+  role = aws_iam_role.openclaw.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:DeleteObject"
+      ]
+      Resource = [
+        "arn:aws:s3:::${var.backup_bucket_name}",
+        "arn:aws:s3:::${var.backup_bucket_name}/*"
+      ]
+    }]
+  })
+}

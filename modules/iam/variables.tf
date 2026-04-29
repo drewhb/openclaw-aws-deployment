@@ -22,3 +22,8 @@ variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
 }
+
+variable "backup_bucket_name" {
+  description = "S3 bucket name for OpenClaw config backups"
+  type        = string
+}
